@@ -85,7 +85,7 @@ export default function Progress() {
                 )}
                 {exercises.map((name) => {
                   const hasPR = workouts.some(
-                    (w) => w.exercise_name === name && w.is_pr === 'true'
+                    (w) => w.exercise_name === name && w.is_pr === true
                   )
                   return (
                     <li key={name}>

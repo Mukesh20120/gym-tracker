@@ -1,13 +1,18 @@
 const { Router } = require('express')
 const { v4: uuidv4 } = require('uuid')
-const { getRows, appendRow } = require('../services/sheetsService')
+const {
+  getAllWorkouts,
+  getWorkoutsByDate,
+  saveWorkoutSets,
+  getMaxWeightPerExercise,
+} = require('../services/dbService')
 
 const router = Router()
 
 // GET /api/workouts — all logged workouts
 router.get('/', async (_req, res) => {
   try {
-    const rows = await getRows('Workouts')
+    const rows = await getAllWorkouts()
     res.json(rows)
   } catch (err) {
     console.error(err)
@@ -18,9 +23,8 @@ router.get('/', async (_req, res) => {
 // GET /api/workouts/:date — workouts for a specific date (YYYY-MM-DD)
 router.get('/:date', async (req, res) => {
   try {
-    const rows = await getRows('Workouts')
-    const filtered = rows.filter((r) => r.date === req.params.date)
-    res.json(filtered)
+    const rows = await getWorkoutsByDate(req.params.date)
+    res.json(rows)
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Failed to fetch workouts for date' })
@@ -36,24 +40,16 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'date, day_name, and sets[] are required' })
     }
 
-    // Load previous workouts to detect PRs
-    const existing = await getRows('Workouts')
-    const prMap = {}
-    existing.forEach((r) => {
-      const key = r.exercise_name
-      const w = parseFloat(r.weight_kg) || 0
-      if (!prMap[key] || w > prMap[key]) prMap[key] = w
-    })
-
-    const created_at = new Date().toISOString()
-    const savedSets = []
+    const prMap = await getMaxWeightPerExercise()
+    const created_at = new Date()
+    const rows = []
 
     for (const s of sets) {
       const weight = parseFloat(s.weight_kg) || 0
       const prevBest = prMap[s.exercise_name] ?? null
-      const is_pr = prevBest === null ? false : weight > prevBest
+      const is_pr = prevBest === null ? true : weight > prevBest
 
-      const row = {
+      rows.push({
         id: uuidv4(),
         date,
         day_name,
@@ -62,16 +58,14 @@ router.post('/', async (req, res) => {
         reps: s.reps,
         weight_kg: weight,
         notes: s.notes || '',
-        is_pr: is_pr ? 'true' : 'false',
+        is_pr,
         created_at,
-      }
-      await appendRow('Workouts', row)
-      savedSets.push(row)
+      })
 
-      // Update PR map for subsequent sets in the same session
       if (is_pr || prevBest === null) prMap[s.exercise_name] = weight
     }
 
+    const savedSets = await saveWorkoutSets(rows)
     res.status(201).json({ saved: savedSets.length, sets: savedSets })
   } catch (err) {
     console.error(err)

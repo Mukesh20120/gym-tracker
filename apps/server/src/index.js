@@ -1,6 +1,8 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const AppDataSource = require('./db/dataSource')
+const { seed } = require('./db/seed')
 const workoutsRouter = require('./routes/workouts')
 const templatesRouter = require('./routes/templates')
 
@@ -20,6 +22,12 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 app.use('/api/workouts', workoutsRouter)
 app.use('/api/templates', templatesRouter)
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
+AppDataSource.initialize()
+  .then(() => seed())
+  .then(() => {
+    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`))
+  })
+  .catch((err) => {
+    console.error('Failed to connect to database:', err)
+    process.exit(1)
+  })

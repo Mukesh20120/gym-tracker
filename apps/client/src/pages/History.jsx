@@ -245,7 +245,7 @@ function SessionDetail({ session }) {
 
       <ul className="divide-y divide-gray-800">
         {Object.entries(byExercise).map(([name, sets]) => {
-          const hasPR = sets.some((s) => s.is_pr === 'true')
+          const hasPR = sets.some((s) => s.is_pr === true)
           return (
             <li key={name} className="py-2">
               <div className="mb-1.5 flex items-center gap-2">

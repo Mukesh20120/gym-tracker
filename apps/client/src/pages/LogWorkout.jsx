@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useTemplate } from '../hooks/useTemplate'
 import { useWorkoutSession } from '../hooks/useWorkoutSession'
 import PageHeader from '../components/ui/PageHeader'
@@ -13,16 +13,34 @@ const GROUP_COLOR = { Push: 'indigo', Pull: 'green', Legs: 'red' }
 
 export default function LogWorkout() {
   const navigate = useNavigate()
-  const { template, loading, error, dayName } = useTemplate()
+  const { state } = useLocation()
+
+  // If navigated from Dashboard with a selected day, use it directly.
+  // Otherwise fall back to the calendar-based template system.
+  const selectedDay = state?.day ?? null
+  const { template, loading: templateLoading, error: templateError, dayName: templateDayName } = useTemplate()
+
+  const loading = selectedDay ? false : templateLoading
+  const error = selectedDay ? null : templateError
+  const dayName = selectedDay ? selectedDay.name : templateDayName
+  const exercises = selectedDay ? selectedDay.exercises : template?.exercises
+
   const {
     sets, init, updateSet, toggleDone, addSet, removeSet,
     save, saving, result, saveError, reset,
   } = useWorkoutSession()
 
-  // Initialise session state once template loads
+  // Stable key for the current exercise list — use day id (or day name as fallback for templates).
+  const exerciseListKey = selectedDay?.id ?? dayName
+
+  // Re-init whenever the workout day changes, and reset stale state on unmount.
   useEffect(() => {
-    if (template?.exercises) init(template.exercises)
-  }, [template, init])
+    if (exercises?.length) init(exercises)
+  }, [exerciseListKey, init])
+
+  useEffect(() => {
+    return () => reset()
+  }, [reset])
 
   // Navigate home after a short success pause
   useEffect(() => {
@@ -31,8 +49,8 @@ export default function LogWorkout() {
     return () => clearTimeout(t)
   }, [result, navigate])
 
-  // ── Rest-day (Sunday) ──────────────────────────────────────────────────────
-  if (!loading && !error && !template) {
+  // ── Rest-day ───────────────────────────────────────────────────────────────
+  if (!loading && !error && (!exercises || exercises.length === 0)) {
     return (
       <div className="flex flex-col">
         <PageHeader title="Log Workout" />
@@ -93,9 +111,10 @@ export default function LogWorkout() {
   }
 
   // ── Active session ─────────────────────────────────────────────────────────
-  const exercises = template?.exercises ?? []
+  const sessionExercises = exercises ?? []
   const totalSets = Object.values(sets).reduce((n, rows) => n + rows.length, 0)
   const doneSets = Object.values(sets).reduce((n, rows) => n + rows.filter((s) => s.done).length, 0)
+
   const canSubmit = totalSets > 0 && !saving
 
   return (
@@ -115,7 +134,7 @@ export default function LogWorkout() {
 
       {/* Exercise list */}
       <div className="flex flex-col gap-4 px-4 pb-6">
-        {exercises.map((ex) => {
+        {sessionExercises.map((ex) => {
           const exSets = sets[ex.exercise_name] ?? []
           const groupColor = GROUP_COLOR[ex.muscle_group] ?? 'gray'
 

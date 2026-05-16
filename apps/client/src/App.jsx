@@ -7,6 +7,9 @@ import Dashboard from './pages/Dashboard'
 import LogWorkout from './pages/LogWorkout'
 import History from './pages/History'
 import Progress from './pages/Progress'
+import Settings from './pages/Settings'
+import WorkoutDayManager from './pages/WorkoutDayManager'
+import DayExerciseEditor from './pages/DayExerciseEditor'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import NotFound from './pages/NotFound'
@@ -25,6 +28,9 @@ export default function App() {
                 <Route path="log" element={<LogWorkout />} />
                 <Route path="history" element={<History />} />
                 <Route path="progress" element={<Progress />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="settings/days" element={<WorkoutDayManager />} />
+                <Route path="settings/days/:dayId" element={<DayExerciseEditor />} />
               </Route>
             </Route>
             <Route path="*" element={<NotFound />} />

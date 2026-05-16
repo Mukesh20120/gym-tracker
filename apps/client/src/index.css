@@ -11,3 +11,12 @@
     @apply bg-gray-950 text-gray-100 antialiased;
   }
 }
+
+@layer utilities {
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

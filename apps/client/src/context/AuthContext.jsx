@@ -17,36 +17,46 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     setError(null)
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    const data = await res.json().catch(() => null)
-    if (!res.ok) {
-      setError(data?.error ?? 'Login failed')
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.error ?? 'Login failed')
+        return false
+      }
+      setUser(data.user)
+      return true
+    } catch {
+      setError('Unable to connect to server. Please try again.')
       return false
     }
-    setUser(data.user)
-    return true
   }, [])
 
   const register = useCallback(async (email, password, displayName) => {
     setError(null)
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, display_name: displayName }),
-    })
-    const data = await res.json().catch(() => null)
-    if (!res.ok) {
-      setError(data?.error ?? 'Registration failed')
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, display_name: displayName }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        setError(data?.error ?? 'Registration failed')
+        return false
+      }
+      setUser(data.user)
+      return true
+    } catch {
+      setError('Unable to connect to server. Please try again.')
       return false
     }
-    setUser(data.user)
-    return true
   }, [])
 
   const logout = useCallback(async () => {

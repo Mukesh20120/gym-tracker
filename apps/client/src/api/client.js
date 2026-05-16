@@ -8,6 +8,11 @@ async function request(path, options = {}) {
   })
   const data = await res.json().catch(() => null)
   if (!res.ok) {
+    // Session expired or was invalidated — send user back to login.
+    if (res.status === 401) {
+      window.location.assign('/login')
+      return
+    }
     const message = data?.error || `Request failed: ${res.status}`
     throw Object.assign(new Error(message), { status: res.status, data })
   }
@@ -35,4 +40,34 @@ export function getAllWorkouts() {
  */
 export function postWorkout(payload) {
   return request('/workouts', { method: 'POST', body: JSON.stringify(payload) })
+}
+
+/** Fetch the current user's workout days with their exercises. */
+export function getWorkoutDays() {
+  return request('/workout-days')
+}
+
+/** Create a new custom workout day. */
+export function createWorkoutDay(name) {
+  return request('/workout-days', { method: 'POST', body: JSON.stringify({ name }) })
+}
+
+/** Rename a workout day. */
+export function updateWorkoutDay(id, name) {
+  return request(`/workout-days/${id}`, { method: 'PUT', body: JSON.stringify({ name }) })
+}
+
+/** Delete a workout day. */
+export function deleteWorkoutDay(id) {
+  return request(`/workout-days/${id}`, { method: 'DELETE' })
+}
+
+/** Replace the full exercise list for a workout day. */
+export function saveWorkoutDayExercises(dayId, exercises) {
+  return request(`/workout-days/${dayId}/exercises`, { method: 'PUT', body: JSON.stringify({ exercises }) })
+}
+
+/** Fetch the full exercise catalog. */
+export function getExercises() {
+  return request('/exercises')
 }

@@ -1,0 +1,32 @@
+services:
+  gym-server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    image: mukesh20120/gym-tracker-server:latest
+    env_file: .env
+    volumes:
+      - ./credentials.json:/app/credentials.json:ro
+    restart: unless-stopped
+    networks:
+      - gym-net
+
+  gym-web:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+    image: mukesh20120/gym-tracker-web:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - gym-server
+    restart: unless-stopped
+    networks:
+      - gym-net
+
+networks:
+  gym-net:

@@ -14,5 +14,6 @@ module.exports = new EntitySchema({
     notes: { type: String, length: 500, nullable: true, default: '' },
     is_pr: { type: Boolean, default: false },
     created_at: { type: Date, createDate: true },
+    user_id: { type: String, length: 36, nullable: true },
   },
 })

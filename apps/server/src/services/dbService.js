@@ -12,23 +12,24 @@ function templateRepo() {
   return AppDataSource.getRepository('Template')
 }
 
-async function getAllWorkouts() {
-  return workoutRepo().find({ order: { created_at: 'ASC' } })
+async function getAllWorkouts(userId) {
+  return workoutRepo().find({ where: { user_id: userId }, order: { created_at: 'ASC' } })
 }
 
-async function getWorkoutsByDate(date) {
-  return workoutRepo().findBy({ date })
+async function getWorkoutsByDate(date, userId) {
+  return workoutRepo().findBy({ date, user_id: userId })
 }
 
 async function saveWorkoutSets(rows) {
   return workoutRepo().save(rows)
 }
 
-async function getMaxWeightPerExercise() {
+async function getMaxWeightPerExercise(userId) {
   const results = await workoutRepo()
     .createQueryBuilder('w')
     .select('w.exercise_name', 'exercise_name')
     .addSelect('MAX(CAST(w.weight_kg AS DECIMAL))', 'max_weight')
+    .where('w.user_id = :userId', { userId })
     .groupBy('w.exercise_name')
     .getRawMany()
 

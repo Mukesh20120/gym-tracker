@@ -3,6 +3,8 @@ const express = require('express')
 const cors = require('cors')
 const AppDataSource = require('./db/dataSource')
 const { seed } = require('./db/seed')
+const { createSessionMiddleware } = require('./middleware/session')
+const authRouter = require('./routes/auth')
 const workoutsRouter = require('./routes/workouts')
 const templatesRouter = require('./routes/templates')
 
@@ -15,10 +17,12 @@ const allowedOrigins = process.env.ALLOWED_ORIGIN
 
 app.use(cors({ origin: allowedOrigins, credentials: true }))
 app.use(express.json())
+app.use(createSessionMiddleware())
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 
+app.use('/api/auth', authRouter)
 app.use('/api/workouts', workoutsRouter)
 app.use('/api/templates', templatesRouter)
 

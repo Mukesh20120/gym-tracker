@@ -1,5 +1,6 @@
 const { Router } = require('express')
 const { v4: uuidv4 } = require('uuid')
+const { requireAuth } = require('../middleware/requireAuth')
 const {
   getAllWorkouts,
   getWorkoutsByDate,
@@ -8,11 +9,11 @@ const {
 } = require('../services/dbService')
 
 const router = Router()
+router.use(requireAuth)
 
-// GET /api/workouts — all logged workouts
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const rows = await getAllWorkouts()
+    const rows = await getAllWorkouts(req.session.userId)
     res.json(rows)
   } catch (err) {
     console.error(err)
@@ -20,10 +21,9 @@ router.get('/', async (_req, res) => {
   }
 })
 
-// GET /api/workouts/:date — workouts for a specific date (YYYY-MM-DD)
 router.get('/:date', async (req, res) => {
   try {
-    const rows = await getWorkoutsByDate(req.params.date)
+    const rows = await getWorkoutsByDate(req.params.date, req.session.userId)
     res.json(rows)
   } catch (err) {
     console.error(err)
@@ -31,8 +31,6 @@ router.get('/:date', async (req, res) => {
   }
 })
 
-// POST /api/workouts — log a new workout session
-// Body: { date, day_name, sets: [{ exercise_name, set_number, reps, weight_kg, notes }] }
 router.post('/', async (req, res) => {
   try {
     const { date, day_name, sets } = req.body
@@ -40,7 +38,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'date, day_name, and sets[] are required' })
     }
 
-    const prMap = await getMaxWeightPerExercise()
+    const prMap = await getMaxWeightPerExercise(req.session.userId)
     const created_at = new Date()
     const rows = []
 
@@ -60,6 +58,7 @@ router.post('/', async (req, res) => {
         notes: s.notes || '',
         is_pr,
         created_at,
+        user_id: req.session.userId,
       })
 
       if (is_pr || prevBest === null) prMap[s.exercise_name] = weight

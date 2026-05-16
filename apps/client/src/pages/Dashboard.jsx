@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAllWorkouts } from '../hooks/useAllWorkouts'
-import { useWorkoutDays } from '../hooks/useWorkoutDays'
+import { useGetAllWorkoutsQuery, useGetWorkoutDaysQuery } from '../store/api/gymApi'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -65,8 +64,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const today = toYMD(new Date())
 
-  const { workouts, loading: wLoading } = useAllWorkouts()
-  const { days, loading: dLoading } = useWorkoutDays()
+  const { data: workouts = [], isLoading: wLoading } = useGetAllWorkoutsQuery()
+  const { data: days = [], isLoading: dLoading } = useGetWorkoutDaysQuery()
 
   const todaySets = useMemo(() => workouts.filter((w) => w.date === today), [workouts, today])
   const alreadyLogged = todaySets.length > 0

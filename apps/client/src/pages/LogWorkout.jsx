@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useTemplate } from '../hooks/useTemplate'
+import { useGetTemplateQuery } from '../store/api/gymApi'
 import { useWorkoutSession } from '../hooks/useWorkoutSession'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -18,7 +18,14 @@ export default function LogWorkout() {
   // If navigated from Dashboard with a selected day, use it directly.
   // Otherwise fall back to the calendar-based template system.
   const selectedDay = state?.day ?? null
-  const { template, loading: templateLoading, error: templateError, dayName: templateDayName } = useTemplate()
+
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const templateDayName = DAY_NAMES[new Date().getDay()]
+  const { data: template, isLoading: templateLoading, error: templateQueryError } = useGetTemplateQuery(
+    templateDayName,
+    { skip: !!selectedDay }
+  )
+  const templateError = templateQueryError?.data ?? null
 
   const loading = selectedDay ? false : templateLoading
   const error = selectedDay ? null : templateError

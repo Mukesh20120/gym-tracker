@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react'
-import { postWorkout } from '../api/client'
+import axiosInstance from '../api/axiosInstance'
 
 const QUEUE_KEY = 'gym_offline_queue'
 
@@ -23,7 +23,7 @@ async function flushQueue() {
   const failed = []
   for (const item of queue) {
     try {
-      await postWorkout(item.payload)
+      await axiosInstance.post('/workouts', item.payload)
     } catch {
       failed.push(item)
     }
@@ -31,7 +31,6 @@ async function flushQueue() {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(failed))
 }
 
-/** Mounts a window.online listener that flushes queued workouts on reconnect. */
 export function useOfflineQueueFlusher() {
   const flush = useCallback(() => {
     if (navigator.onLine) flushQueue()
@@ -39,7 +38,6 @@ export function useOfflineQueueFlusher() {
 
   useEffect(() => {
     window.addEventListener('online', flush)
-    // Flush immediately on mount in case we came back online while the page was closed
     flush()
     return () => window.removeEventListener('online', flush)
   }, [flush])

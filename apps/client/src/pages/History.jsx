@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
-import { useAllWorkouts } from '../hooks/useAllWorkouts'
+import { useGetAllWorkoutsQuery } from '../store/api/gymApi'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Spinner from '../components/ui/Spinner'
@@ -394,7 +394,8 @@ function WeeklyVolumeCard({ weeklyVolume }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function History() {
-  const { workouts, loading, error } = useAllWorkouts()
+  const { data: workouts = [], isLoading: loading, error: queryError } = useGetAllWorkoutsQuery()
+  const error = queryError?.data ?? null
   const [selectedDate, setSelectedDate] = useState(null)
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date()

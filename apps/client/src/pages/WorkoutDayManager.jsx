@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useWorkoutDays } from '../hooks/useWorkoutDays'
-import { useWorkoutDayEditor } from '../hooks/useWorkoutDayEditor'
+import {
+  useGetWorkoutDaysQuery,
+  useCreateWorkoutDayMutation,
+  useDeleteWorkoutDayMutation,
+} from '../store/api/gymApi'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -72,22 +75,32 @@ function WorkoutDayRow({ day, onEdit, onDelete, canDelete }) {
 
 export default function WorkoutDayManager() {
   const navigate = useNavigate()
-  const { days, loading, error, refetch } = useWorkoutDays()
-  const { createDay, removeDay, saving, error: editorError } = useWorkoutDayEditor(refetch)
+  const { data: days = [], isLoading: loading, error: queryError } = useGetWorkoutDaysQuery()
+  const [createDay, { isLoading: creating }] = useCreateWorkoutDayMutation()
+  const [deleteDay] = useDeleteWorkoutDayMutation()
+
+  const error = queryError?.data ?? null
 
   const [showNewDayForm, setShowNewDayForm] = useState(false)
   const [newDayName, setNewDayName] = useState('')
+  const [editorError, setEditorError] = useState(null)
 
   async function handleCreate() {
     const name = newDayName.trim()
     if (!name) return
-    try {
-      await createDay(name)
+    setEditorError(null)
+    const result = await createDay(name)
+    if (result.error) {
+      setEditorError(result.error.data ?? 'Failed to create day')
+    } else {
       setNewDayName('')
       setShowNewDayForm(false)
-    } catch {
-      // error shown via editorError
     }
+  }
+
+  async function handleDelete(id) {
+    const result = await deleteDay(id)
+    if (result.error) setEditorError(result.error.data ?? 'Failed to delete day')
   }
 
   function handleEdit(day) {
@@ -118,7 +131,6 @@ export default function WorkoutDayManager() {
       />
 
       <div className="flex flex-col gap-3 px-4 pb-6">
-        {/* New day form */}
         {showNewDayForm && (
           <Card className="flex flex-col gap-3">
             <p className="text-sm font-semibold text-gray-300">New Workout Day</p>
@@ -132,8 +144,8 @@ export default function WorkoutDayManager() {
               autoFocus
             />
             <div className="flex gap-2">
-              <Button onClick={handleCreate} disabled={!newDayName.trim() || saving} className="flex-1">
-                {saving ? 'Creating…' : 'Create'}
+              <Button onClick={handleCreate} disabled={!newDayName.trim() || creating} className="flex-1">
+                {creating ? 'Creating…' : 'Create'}
               </Button>
               <Button variant="secondary" onClick={() => { setShowNewDayForm(false); setNewDayName('') }} className="flex-1">
                 Cancel
@@ -159,7 +171,7 @@ export default function WorkoutDayManager() {
                 key={day.id}
                 day={day}
                 onEdit={handleEdit}
-                onDelete={removeDay}
+                onDelete={handleDelete}
                 canDelete={days.length > 1}
               />
             ))}

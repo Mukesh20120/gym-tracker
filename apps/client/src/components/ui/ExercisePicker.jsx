@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useExerciseCatalog } from '../../hooks/useExerciseCatalog'
+import { useGetExercisesQuery } from '../../store/api/gymApi'
 import Badge from './Badge'
 import Button from './Button'
 import Spinner from './Spinner'
@@ -13,7 +13,7 @@ const GROUP_COLOR = { Push: 'indigo', Pull: 'green', Legs: 'red' }
 export default function ExercisePicker({ onAdd, existingNames = [] }) {
   const [activeTab, setActiveTab] = useState('catalog')
   const [customName, setCustomName] = useState('')
-  const { exercises, loading } = useExerciseCatalog()
+  const { data: exercises = [], isLoading: loading } = useGetExercisesQuery()
 
   function handleCatalogAdd(ex) {
     onAdd({

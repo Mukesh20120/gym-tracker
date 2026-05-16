@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
-import { useAllWorkouts } from '../hooks/useAllWorkouts'
+import { useGetAllWorkoutsQuery } from '../store/api/gymApi'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
 import Spinner from '../components/ui/Spinner'
@@ -37,7 +37,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function Progress() {
-  const { workouts, loading, error } = useAllWorkouts()
+  const { data: workouts = [], isLoading: loading, error: queryError } = useGetAllWorkoutsQuery()
+  const error = queryError?.data ?? null
   const [selected, setSelected] = useState(null)
 
   const exercises = useMemo(() => {

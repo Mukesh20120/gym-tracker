@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { useWorkoutDays } from '../hooks/useWorkoutDays'
-import { useWorkoutDayEditor } from '../hooks/useWorkoutDayEditor'
+import {
+  useGetWorkoutDaysQuery,
+  useSaveWorkoutDayExercisesMutation,
+} from '../store/api/gymApi'
 import ExercisePicker from '../components/ui/ExercisePicker'
 import PageHeader from '../components/ui/PageHeader'
 import Button from '../components/ui/Button'
@@ -37,14 +39,14 @@ export default function DayExerciseEditor() {
   const { dayId } = useParams()
   const { state } = useLocation()
 
-  // Use the day passed via navigation state, or re-fetch if navigated directly.
-  const { days, loading: daysLoading, refetch } = useWorkoutDays()
-  const { saveExercises, saving, error } = useWorkoutDayEditor(refetch)
+  const { data: days = [], isLoading: daysLoading } = useGetWorkoutDaysQuery()
+  const [saveWorkoutDayExercises, { isLoading: saving }] = useSaveWorkoutDayExercisesMutation()
 
   const day = state?.day ?? days.find((d) => d.id === dayId)
 
   const [localExercises, setLocalExercises] = useState([])
   const [dirty, setDirty] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     if (day) {
@@ -88,19 +90,20 @@ export default function DayExerciseEditor() {
   }
 
   async function handleSave() {
-    try {
-      const payload = localExercises.map((ex, i) => ({
-        exercise_name: ex.exercise_name,
-        exercise_id: ex.exercise_id || null,
-        default_sets: ex.default_sets ?? 3,
-        default_reps: ex.default_reps ?? '8-10',
-        default_weight_kg: ex.default_weight_kg ?? 0,
-        sort_order: i,
-      }))
-      await saveExercises(dayId, payload)
+    setError(null)
+    const payload = localExercises.map((ex, i) => ({
+      exercise_name: ex.exercise_name,
+      exercise_id: ex.exercise_id || null,
+      default_sets: ex.default_sets ?? 3,
+      default_reps: ex.default_reps ?? '8-10',
+      default_weight_kg: ex.default_weight_kg ?? 0,
+      sort_order: i,
+    }))
+    const result = await saveWorkoutDayExercises({ dayId, exercises: payload })
+    if (result.error) {
+      setError(result.error.data ?? 'Failed to save exercises')
+    } else {
       navigate(-1)
-    } catch {
-      // error displayed below
     }
   }
 
@@ -143,7 +146,6 @@ export default function DayExerciseEditor() {
           <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400">{error}</p>
         )}
 
-        {/* Current exercise list */}
         {localExercises.length === 0 ? (
           <p className="text-center text-sm text-gray-500 py-4">
             No exercises yet. Add some below.
@@ -157,7 +159,6 @@ export default function DayExerciseEditor() {
               >
                 <span className="flex-1 text-sm font-medium text-gray-100">{ex.exercise_name}</span>
 
-                {/* Reorder buttons */}
                 <div className="flex flex-col">
                   <button
                     onClick={() => moveUp(i)}
@@ -189,13 +190,11 @@ export default function DayExerciseEditor() {
           </div>
         )}
 
-        {/* Add exercise */}
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-600">
           Add Exercise
         </p>
         <ExercisePicker onAdd={addExercise} existingNames={existingNames} />
 
-        {/* Save button at the bottom too */}
         {dirty && (
           <Button onClick={handleSave} disabled={saving} className="w-full py-4 text-base">
             {saving ? 'Saving…' : 'Save Changes'}

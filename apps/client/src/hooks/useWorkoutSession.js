@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react'
-import { postWorkout } from '../api/client'
+import { usePostWorkoutMutation } from '../store/api/gymApi'
 import { enqueueWorkout } from './useOfflineQueue'
 
 function makeSet(weight, reps) {
   return { weight: String(weight), reps: String(reps), done: false }
 }
 
-/** Build initial session state from a template's exercise list. */
 export function initSession(exercises) {
   return Object.fromEntries(
     exercises.map((ex) => [
@@ -21,8 +20,10 @@ export function initSession(exercises) {
 export function useWorkoutSession() {
   const [sets, setSets] = useState({})
   const [saving, setSaving] = useState(false)
-  const [result, setResult] = useState(null) // { saved, sets, queued? } on success
+  const [result, setResult] = useState(null)
   const [saveError, setSaveError] = useState(null)
+
+  const [postWorkout] = usePostWorkoutMutation()
 
   const init = useCallback((exercises) => {
     setSets(initSession(exercises))
@@ -66,31 +67,34 @@ export function useWorkoutSession() {
   const save = useCallback(async (dayName) => {
     setSaving(true)
     setSaveError(null)
+    const today = new Date().toISOString().slice(0, 10)
+    const payload = {
+      date: today,
+      day_name: dayName,
+      sets: Object.entries(sets).flatMap(([exercise_name, rows]) =>
+        rows.map((s, i) => ({
+          exercise_name,
+          set_number: i + 1,
+          reps: Number(s.reps) || 0,
+          weight_kg: Number(s.weight) || 0,
+          notes: '',
+        }))
+      ),
+    }
     try {
-      const today = new Date().toISOString().slice(0, 10)
-      const payload = {
-        date: today,
-        day_name: dayName,
-        sets: Object.entries(sets).flatMap(([exercise_name, rows]) =>
-          rows.map((s, i) => ({
-            exercise_name,
-            set_number: i + 1,
-            reps: Number(s.reps) || 0,
-            weight_kg: Number(s.weight) || 0,
-            notes: '',
-          }))
-        ),
-      }
       if (!navigator.onLine) {
         enqueueWorkout(payload)
         setResult({ queued: true })
       } else {
-        const data = await postWorkout(payload)
-        setResult(data)
+        const result = await postWorkout(payload)
+        if (result.error) {
+          setSaveError(result.error.data ?? 'Save failed')
+        } else {
+          setResult(result.data)
+        }
       }
     } catch (err) {
-      // Network failed mid-request — queue for retry
-      if (!navigator.onLine || err.message?.toLowerCase().includes('failed to fetch')) {
+      if (!navigator.onLine || err.message?.toLowerCase().includes('network')) {
         enqueueWorkout(payload)
         setResult({ queued: true })
       } else {
@@ -99,7 +103,7 @@ export function useWorkoutSession() {
     } finally {
       setSaving(false)
     }
-  }, [sets])
+  }, [sets, postWorkout])
 
   const reset = useCallback(() => {
     setSets({})

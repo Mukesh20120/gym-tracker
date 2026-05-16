@@ -1,5 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Provider } from 'react-redux'
+import { store } from './store'
 import './index.css'
 import App from './App.jsx'
 import { useOfflineQueueFlusher } from './hooks/useOfflineQueue.js'
@@ -11,6 +13,8 @@ function Root() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Root />
+    <Provider store={store}>
+      <Root />
+    </Provider>
   </StrictMode>,
 )

@@ -1,68 +1,57 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback } from 'react'
+import { useDispatch } from 'react-redux'
+import { authApi, useGetMeQuery, useLoginMutation, useRegisterMutation, useLogoutMutation } from '../store/api/authApi'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const dispatch = useDispatch()
 
-  useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setUser(data?.user ?? null))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false))
-  }, [])
+  const { data, isLoading: loading } = useGetMeQuery(undefined, { refetchOnMountOrArgChange: false })
+  const user = data?.user ?? null
+
+  const [loginMutation] = useLoginMutation()
+  const [registerMutation] = useRegisterMutation()
+  const [logoutMutation] = useLogoutMutation()
 
   const login = useCallback(async (email, password) => {
     setError(null)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-      const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        setError(data?.error ?? 'Login failed')
+      const result = await loginMutation({ email, password })
+      if (result.error) {
+        setError(result.error.data ?? 'Login failed')
         return false
       }
-      setUser(data.user)
+      // Patch the cache immediately so user is available before navigate()
+      dispatch(authApi.util.upsertQueryData('getMe', undefined, result.data))
       return true
     } catch {
       setError('Unable to connect to server. Please try again.')
       return false
     }
-  }, [])
+  }, [loginMutation, dispatch])
 
   const register = useCallback(async (email, password, displayName) => {
     setError(null)
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, display_name: displayName }),
-      })
-      const data = await res.json().catch(() => null)
-      if (!res.ok) {
-        setError(data?.error ?? 'Registration failed')
+      const result = await registerMutation({ email, password, displayName })
+      if (result.error) {
+        setError(result.error.data ?? 'Registration failed')
         return false
       }
-      setUser(data.user)
+      dispatch(authApi.util.upsertQueryData('getMe', undefined, result.data))
       return true
     } catch {
       setError('Unable to connect to server. Please try again.')
       return false
     }
-  }, [])
+  }, [registerMutation, dispatch])
 
   const logout = useCallback(async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-    setUser(null)
-  }, [])
+    await logoutMutation()
+    dispatch(authApi.util.resetApiState())
+  }, [logoutMutation, dispatch])
 
   const clearError = useCallback(() => setError(null), [])
 

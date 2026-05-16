@@ -9,6 +9,7 @@ const workoutsRouter = require('./routes/workouts')
 const templatesRouter = require('./routes/templates')
 
 const app = express()
+app.set('trust proxy', 1)
 const PORT = process.env.PORT || 4000
 
 const allowedOrigins = process.env.ALLOWED_ORIGIN
@@ -27,11 +28,12 @@ app.use('/api/workouts', workoutsRouter)
 app.use('/api/templates', templatesRouter)
 
 AppDataSource.initialize()
+  .then(() => AppDataSource.runMigrations())
   .then(() => seed())
   .then(() => {
     app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`))
   })
   .catch((err) => {
-    console.error('Failed to connect to database:', err)
+    console.error('Failed to start server:', err)
     process.exit(1)
   })

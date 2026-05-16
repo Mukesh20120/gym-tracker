@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "migration:run": "typeorm migration:run -d src/db/dataSource.js",
+    "migration:revert": "typeorm migration:revert -d src/db/dataSource.js",
+    "migration:generate": "typeorm migration:generate -d src/db/dataSource.js --outputJs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
